@@ -114,7 +114,7 @@
           var b64 = params.get('i').replace(/-/g, '+').replace(/_/g, '/');
           dest = atob(b64);
         } catch (e) {
-          dest = null; // invalid base64 → show error below
+          dest = null; // invalid base64
         }
       }
 
@@ -123,22 +123,75 @@
         dest = decodeURIComponent(params.get('u'));
       }
 
-      // No parameters — redirect to bot by default
+      // No parameters — redirect to default destination
       else {
         dest = DEFAULT_DEST;
       }
 
-      // Redirect immediately
-      window.location.replace(dest);
+      // Handle invalid link error
+      if (!dest) {
+        document.getElementById('card').classList.add('error-card');
+        document.querySelector('h1').textContent = 'Invalid Link';
+        document.querySelector('p').textContent = 'This link appears to be invalid or expired. Please request a new link from the bot.';
+        return;
+      }
 
-      // Show manual button after 1.5s in case browser blocks auto-redirect
+      // Helper to convert Telegram web URLs into native deep-link schemes
+      function getNativeTelegramUrl(url) {
+        if (!url) return null;
+        // 1. Invite links: t.me/+HASH or t.me/joinchat/HASH
+        var inviteMatch = url.match(/t\.me\/(?:\+|joinchat\/)([A-Za-z0-9_-]+)/i);
+        if (inviteMatch) {
+          return 'tg://join?invite=' + inviteMatch[1];
+        }
+        // 2. Channel or bot usernames: t.me/channelname or t.me/bot?start=xxx
+        var userMatch = url.match(/t\.me\/([A-Za-z0-9_]+)(?:\?(.*))?/i);
+        if (userMatch && userMatch[1].toLowerCase() !== 'joinchat') {
+          var domain = userMatch[1];
+          var query = userMatch[2] ? '&' + userMatch[2] : '';
+          return 'tg://resolve?domain=' + domain + query;
+        }
+        return null;
+      }
+
+      var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      var nativeUrl = getNativeTelegramUrl(dest);
+      var primaryUrl = (isMobile && nativeUrl) ? nativeUrl : dest;
+
+      // ── AUTO REDIRECT ────────────────────────────────────────────────────────
+      if (isMobile && nativeUrl) {
+        // Direct instant launch into Telegram App on mobile
+        window.location.href = nativeUrl;
+
+        // Fallback to web link if Telegram app isn't installed
+        setTimeout(function () {
+          window.location.replace(dest);
+        }, 1500);
+      } else {
+        // Desktop or non-Telegram URL
+        window.location.replace(dest);
+      }
+
+      // ── MANUAL BUTTON FALLBACK ───────────────────────────────────────────────
       setTimeout(function () {
         var btn = document.getElementById('manual-btn');
-        btn.href = dest;
+        btn.href = primaryUrl;
+        btn.textContent = (isMobile && nativeUrl) ? 'Open in Telegram App →' : 'Open Link →';
         btn.style.display = 'inline-block';
+
+        btn.onclick = function () {
+          if (isMobile && nativeUrl) {
+            window.location.href = nativeUrl;
+            setTimeout(function () {
+              window.location.href = dest;
+            }, 1000);
+            return false;
+          }
+        };
+
         document.querySelector('p').textContent =
-          'Not redirected? Click the button below.';
-      }, 1500);
+          'Not redirected? Click the button below:';
+      }, 1200);
 
     })();
   </script>
