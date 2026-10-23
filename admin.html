@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Bot Admin Dashboard</title>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070a12;
+      --card-bg: rgba(18, 24, 40, 0.8);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.35);
+      --accent: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg);
+      background-image: 
+        radial-gradient(circle at 10% 5%, rgba(59, 130, 246, 0.18) 0%, transparent 40%),
+        radial-gradient(circle at 90% 95%, rgba(139, 92, 246, 0.15) 0%, transparent 40%);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 16px;
+      padding-bottom: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Top Admin Bar */
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 2px 6px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ef4444, #f59e0b);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    }
+    .greeting h2 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    .greeting p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .admin-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #f87171;
+    }
+
+    /* Section Headings */
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-val {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .stat-lbl {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Mode Selector Pills */
+    .mode-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .mode-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      padding: 12px 6px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      border-color: rgba(59, 130, 246, 0.5);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+
+    /* Channel Item */
+    .channel-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .ch-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .ch-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .ch-id {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+    .ch-toggles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .toggle-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .toggle-pill.on {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+    }
+
+    /* Action Buttons */
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn-action {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-action:active {
+      transform: scale(0.97);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #f8fafc;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      z-index: 200;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- Top Admin Bar -->
+  <div class="header-bar">
+    <div class="user-info">
+      <div class="avatar" id="admin-avatar">👑</div>
+      <div class="greeting">
+        <h2 id="admin-name">Admin Control</h2>
+        <p>Live Bot Dashboard</p>
+      </div>
+    </div>
+    <div class="admin-badge">
+      <span>🛡️</span> Admin Access
+    </div>
+  </div>
+
+  <!-- Live Stats Overview -->
+  <div class="section-title">
+    <span>📊</span> Live Statistics
+  </div>
+  <div class="card">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-total">0</div>
+        <div class="stat-lbl">Total Users</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-active" style="color: #34d399;">0</div>
+        <div class="stat-lbl">Active (30d)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-new-today" style="color: #60a5fa;">+0</div>
+        <div class="stat-lbl">New Today</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-new-week" style="color: #a78bfa;">+0</div>
+        <div class="stat-lbl">New This Week</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation UI System Mode -->
+  <div class="section-title">
+    <span>🌐</span> Navigation UI Mode
+  </div>
+  <div class="card">
+    <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+      Choose which interface users see when they send <code>/start</code>:
+    </p>
+    <div class="mode-selector">
+      <div class="mode-btn" id="mode-keyboard" onclick="setMode('keyboard')">
+        <span style="font-size: 1.1rem;">🔘</span>
+        Keyboard Only
+      </div>
+      <div class="mode-btn" id="mode-webapp" onclick="setMode('webapp')">
+        <span style="font-size: 1.1rem;">🌐</span>
+        Web App Only
+      </div>
+      <div class="mode-btn" id="mode-both" onclick="setMode('both')">
+        <span style="font-size: 1.1rem;">⚡</span>
+        Both Together
+      </div>
+    </div>
+  </div>
+
+  <!-- Managed Channels -->
+  <div class="section-title">
+    <span>📡</span> Channels & Access Control
+  </div>
+  <div class="card" id="channels-card">
+    <div id="channels-list">Loading channels...</div>
+  </div>
+
+  <!-- Quick Configuration Actions -->
+  <div class="section-title">
+    <span>⚙️</span> Bot Settings
+  </div>
+  <div class="action-row">
+    <div class="btn-action" onclick="runAdminCmd('set_referral')">
+      <span>🎁</span> Referral Settings
+    </div>
+    <div class="btn-action" onclick="runAdminCmd('set_startcmd')">
+      <span>✏️</span> Start CMD Settings
+    </div>
+    <div class="btn-action" onclick="runAdminCmd('set_scam_alert')">
+      <span>🚨</span> Scam Alert Banner
+    </div>
+    <div class="btn-action" onclick="runAdminCmd('set_reports')">
+      <span>📋</span> Auto Reports
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">✅ Setting applied!</div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    let adminData = {
+      bot_username: "HawasX_Backup_1bot",
+      ui_mode: "keyboard",
+      stats: { total: 0, active: 0, new_today: 0, new_week: 0 },
+      channels: [],
+      referral: { target: 3, reward_channel: "Special Channel", enabled: true }
+    };
+
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    function loadAdminData() {
+      try {
+        const hash = window.location.hash;
+        if (hash.startsWith("#d=")) {
+          const rawB64 = hash.substring(3);
+          let b64Str = rawB64.replace(/-/g, '+').replace(/_/g, '/');
+          while (b64Str.length % 4 !== 0) b64Str += '=';
+          const jsonStr = decodeURIComponent(escape(atob(b64Str)));
+          const parsed = JSON.parse(jsonStr);
+
+          if (parsed.b) adminData.bot_username = parsed.b;
+          if (parsed.ui) adminData.ui_mode = parsed.ui;
+          if (parsed.st) adminData.stats = parsed.st;
+          if (parsed.ch) adminData.channels = parsed.ch;
+          if (parsed.r) adminData.referral = parsed.r;
+        }
+      } catch (err) {
+        console.warn("Could not decode admin payload:", err);
+      }
+      renderAdminUI();
+    }
+
+    function renderAdminUI() {
+      // Stats
+      document.getElementById("stat-total").textContent = (adminData.stats.total || 0).toLocaleString();
+      document.getElementById("stat-active").textContent = (adminData.stats.active || 0).toLocaleString();
+      document.getElementById("stat-new-today").textContent = "+" + (adminData.stats.new_today || 0).toLocaleString();
+      document.getElementById("stat-new-week").textContent = "+" + (adminData.stats.new_week || 0).toLocaleString();
+
+      // UI Mode selector
+      document.getElementById("mode-keyboard").classList.remove("active");
+      document.getElementById("mode-webapp").classList.remove("active");
+      document.getElementById("mode-both").classList.remove("active");
+
+      const activeBtn = document.getElementById("mode-" + (adminData.ui_mode || "keyboard"));
+      if (activeBtn) activeBtn.classList.add("active");
+
+      // Channels
+      const chListEl = document.getElementById("channels-list");
+      chListEl.innerHTML = "";
+
+      if (!adminData.channels || adminData.channels.length === 0) {
+        chListEl.innerHTML = "<p style='color: var(--text-muted); font-size: 0.8rem;'>No channels added yet.</p>";
+      } else {
+        adminData.channels.forEach(c => {
+          const item = document.createElement("div");
+          item.className = "channel-item";
+          item.innerHTML = `
+            <div class="ch-header">
+              <div>
+                <div class="ch-name">${escapeHtml(c.name)}</div>
+                <div class="ch-id">${c.id}</div>
+              </div>
+            </div>
+            <div class="ch-toggles">
+              <div class="toggle-pill ${c.fs ? 'on' : ''}" onclick="toggleChannelSetting('${c.id}', 'fs')">
+                <span>Force Sub</span>
+                <span>${c.fs ? '✅' : '❌'}</span>
+              </div>
+              <div class="toggle-pill ${c.jr ? 'on' : ''}" onclick="toggleChannelSetting('${c.id}', 'jr')">
+                <span>Join Request</span>
+                <span>${c.jr ? '✅' : '❌'}</span>
+              </div>
+              <div class="toggle-pill ${c.aa ? 'on' : ''}" onclick="toggleChannelSetting('${c.id}', 'aa')">
+                <span>Auto Approve</span>
+                <span>${c.aa ? '✅' : '❌'}</span>
+              </div>
+              <div class="toggle-pill ${c.rf ? 'on' : ''}" onclick="toggleChannelSetting('${c.id}', 'ref_lock')">
+                <span>Referral Lock</span>
+                <span>${c.rf ? '✅' : '❌'}</span>
+              </div>
+            </div>
+          `;
+          chListEl.appendChild(item);
+        });
+      }
+    }
+
+    function setMode(mode) {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("medium");
+      adminData.ui_mode = mode;
+      renderAdminUI();
+      showToast("Switching to " + mode + " mode...");
+      setTimeout(() => {
+        const cmdUrl = "https://t.me/" + adminData.bot_username + "?start=cfg_mode_" + mode;
+        if (tg) tg.openTelegramLink(cmdUrl);
+        else window.location.href = cmdUrl;
+      }, 350);
+    }
+
+    function toggleChannelSetting(chId, settingType) {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+      showToast("Updating channel setting...");
+      const cmdUrl = "https://t.me/" + adminData.bot_username + "?start=cfg_toggle_" + settingType + "_" + chId;
+      setTimeout(() => {
+        if (tg) tg.openTelegramLink(cmdUrl);
+        else window.location.href = cmdUrl;
+      }, 350);
+    }
+
+    function runAdminCmd(action) {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+      const cmdUrl = "https://t.me/" + adminData.bot_username + "?start=cfg_open_" + action;
+      if (tg) tg.openTelegramLink(cmdUrl);
+      else window.location.href = cmdUrl;
+    }
+
+    function showToast(text) {
+      const t = document.getElementById("toast");
+      t.textContent = text;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2400);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    window.addEventListener("DOMContentLoaded", loadAdminData);
+  </script>
+</body>
+</html>

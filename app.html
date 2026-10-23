@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Channel Access Hub</title>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(20, 27, 45, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.35);
+      --accent: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg);
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 90% 90%, rgba(139, 92, 246, 0.15) 0%, transparent 45%);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 16px;
+      padding-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-x: hidden;
+    }
+
+    /* Top User Bar */
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 2px 8px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: #fff;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+    .greeting h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .greeting p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--success);
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Top Admin Banner */
+    .admin-banner {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 18px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+      display: none; /* Shown dynamically if set */
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .admin-banner::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    }
+    .banner-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: 6px;
+      width: fit-content;
+    }
+    .banner-img {
+      width: 100%;
+      max-height: 140px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-top: 2px;
+      display: none;
+    }
+    .banner-text {
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+
+    /* Section Headings */
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-top: 4px;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Card Styling */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      position: relative;
+    }
+
+    /* Channel Cards List */
+    .channels-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .channel-card {
+      background: linear-gradient(145deg, rgba(22, 30, 49, 0.85), rgba(15, 23, 42, 0.8));
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+    .channel-card:active {
+      transform: scale(0.985);
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+    .channel-card.locked {
+      border-color: rgba(245, 158, 11, 0.25);
+      background: linear-gradient(145deg, rgba(35, 26, 16, 0.6), rgba(20, 20, 30, 0.7));
+    }
+    .channel-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
+    }
+    .channel-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-main);
+    }
+    .channel-tags {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .tag-backup { background: rgba(59, 130, 246, 0.16); color: #60a5fa; }
+    .tag-lock { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
+    .tag-forcesub { background: rgba(16, 185, 129, 0.16); color: #34d399; }
+
+    .btn-channel {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+      transition: all 0.2s;
+    }
+    .btn-channel:active {
+      transform: scale(0.96);
+      filter: brightness(0.9);
+    }
+    .btn-channel.locked {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+    }
+
+    /* Referral Card */
+    .referral-card {
+      background: linear-gradient(145deg, rgba(26, 20, 48, 0.8), rgba(15, 23, 42, 0.85));
+      border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+    .ref-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .ref-header h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ref-target-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #c084fc;
+      background: rgba(139, 92, 246, 0.2);
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+    .ref-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+    .progress-wrap {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      height: 9px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981, #06b6d4, #8b5cf6);
+      border-radius: 10px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+    .ref-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn-ref {
+      padding: 10px 12px;
+      border-radius: 11px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-copy {
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .btn-copy:active { background: rgba(255, 255, 255, 0.16); }
+    .btn-share {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    .btn-share:active { filter: brightness(0.9); }
+
+    /* Quick Grid */
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+    }
+    .quick-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px 10px;
+      text-align: center;
+      cursor: pointer;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .quick-btn:active {
+      transform: scale(0.97);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .quick-btn span {
+      font-size: 1.3rem;
+    }
+
+    /* Modal Sheet for Scam Alert */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-sheet {
+      background: #131b2e;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px 24px 0 0;
+      padding: 22px 20px 28px;
+      width: 100%;
+      max-width: 480px;
+      animation: slideUp 0.25s ease-out;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-sheet h3 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #f87171;
+    }
+    .modal-sheet p {
+      font-size: 0.84rem;
+      line-height: 1.45;
+      color: #cbd5e1;
+    }
+    .modal-close-btn {
+      margin-top: 8px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #fff;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #f8fafc;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Trust Footer */
+    .trust-footer {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #64748b;
+      margin-top: auto;
+      padding-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top User Profile -->
+  <div class="header-bar">
+    <div class="user-info">
+      <div class="avatar" id="user-avatar">👤</div>
+      <div class="greeting">
+        <h2 id="user-name">Welcome!</h2>
+        <p>Official Channel Hub</p>
+      </div>
+    </div>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      <span>Protected</span>
+    </div>
+  </div>
+
+  <!-- Top Admin Banner (Rendered if set by admin, otherwise hidden) -->
+  <div class="admin-banner" id="admin-banner">
+    <div class="banner-badge">📢 Announcement</div>
+    <img src="" alt="Banner" class="banner-img" id="banner-img" />
+    <div class="banner-text" id="banner-text"></div>
+  </div>
+
+  <!-- Channel Access Section -->
+  <div class="section-title">
+    <span>📡</span> Available Channels
+  </div>
+  <div class="channels-container" id="channels-list">
+    <!-- Channel cards populated dynamically -->
+  </div>
+
+  <!-- Referral Unlock Task Section -->
+  <div class="card referral-card" id="referral-section">
+    <div class="ref-header">
+      <h4 id="ref-channel-title">🎁 VIP Reward Channel</h4>
+      <span class="ref-target-badge" id="ref-badge">Task Active</span>
+    </div>
+    <p class="ref-desc" id="ref-desc">
+      Invite friends using your personal link to unlock access to our exclusive Special Channel!
+    </p>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="ref-progress-bar"></div>
+    </div>
+    <div class="progress-meta">
+      <span id="ref-progress-text">Progress: 0 / 3</span>
+      <span id="ref-remaining-text">3 Remaining</span>
+    </div>
+    <div class="ref-actions">
+      <button class="btn-ref btn-copy" onclick="copyReferralLink()">
+        <span>📋</span> Copy Link
+      </button>
+      <button class="btn-ref btn-share" onclick="shareReferralLink()">
+        <span>📤</span> Direct Share
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Action Grid -->
+  <div class="quick-grid">
+    <div class="quick-btn" onclick="openSupport()">
+      <span>💬</span>
+      Official Support
+    </div>
+    <div class="quick-btn" id="scam-btn" onclick="openScamAlertModal()">
+      <span>🛡️</span>
+      Scam Alert Info
+    </div>
+  </div>
+
+  <div class="trust-footer">
+    🔒 Single-Use Auto-Expiring Links • Protected Gateway
+  </div>
+
+  <!-- Scam Alert Modal -->
+  <div class="modal-overlay" id="scam-modal" onclick="closeScamAlertModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <h3>⚠️ Scam Protection Alert</h3>
+      <p id="scam-modal-text">
+        Official support is STRICTLY <b>@hawasxsupport</b> & <b>@locateverse</b>.<br><br>
+        Beware of impersonator scam accounts like <code>@hawasxsuuports</code>. We never ask for payments, OTPs, or login details!
+      </p>
+      <button class="modal-close-btn" onclick="closeScamAlertModal()">Understood</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <span id="toast-icon">✅</span>
+    <span id="toast-text">Copied to clipboard!</span>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    let appData = {
+      user: { id: 12345678, name: "Member" },
+      bot_username: "HawasX_Backup_1bot",
+      channels: [],
+      referral: { count: 0, target: 3, reward_channel: "Special Channel", enabled: true },
+      banner: { img: null, text: null },
+      support_url: "https://t.me/hawasxsupport",
+      scam_text: null
+    };
+
+    // Initialize WebApp
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
+
+      const tgUser = tg.initDataUnsafe?.user;
+      if (tgUser) {
+        appData.user.id = tgUser.id;
+        appData.user.name = tgUser.first_name || "Member";
+      }
+    }
+
+    // Parse Data from URL Hash: #d=<base64_json>
+    function loadAppData() {
+      try {
+        const hash = window.location.hash;
+        if (hash.startsWith("#d=")) {
+          const rawB64 = hash.substring(3);
+          let b64Str = rawB64.replace(/-/g, '+').replace(/_/g, '/');
+          while (b64Str.length % 4 !== 0) {
+            b64Str += '=';
+          }
+          const jsonStr = decodeURIComponent(escape(atob(b64Str)));
+          const parsed = JSON.parse(jsonStr);
+
+          if (parsed.u) {
+            appData.user.id = parsed.u.id || appData.user.id;
+            appData.user.name = parsed.u.n || appData.user.name;
+          }
+          if (parsed.b) appData.bot_username = parsed.b;
+          if (parsed.ch) appData.channels = parsed.ch;
+          if (parsed.r) appData.referral = parsed.r;
+          if (parsed.bn) appData.banner = parsed.bn;
+          if (parsed.sup) appData.support_url = parsed.sup;
+          if (parsed.scm) appData.scam_text = parsed.scm;
+        }
+      } catch (err) {
+        console.warn("Could not decode hash payload:", err);
+      }
+      renderUI();
+    }
+
+    function renderUI() {
+      // 1. User Header
+      const userNameEl = document.getElementById("user-name");
+      const userAvatarEl = document.getElementById("user-avatar");
+      userNameEl.textContent = "Hello, " + (appData.user.name || "Member") + "!";
+      userAvatarEl.textContent = (appData.user.name || "M").charAt(0).toUpperCase();
+
+      // 2. Top Banner (Admin configured)
+      const bannerEl = document.getElementById("admin-banner");
+      const bannerImgEl = document.getElementById("banner-img");
+      const bannerTextEl = document.getElementById("banner-text");
+
+      const hasBannerImg = appData.banner?.img && appData.banner.img.trim().length > 0;
+      const hasBannerTxt = appData.banner?.txt && appData.banner.txt.trim().length > 0;
+
+      if (hasBannerImg || hasBannerTxt) {
+        bannerEl.style.display = "flex";
+        if (hasBannerImg) {
+          bannerImgEl.src = appData.banner.img;
+          bannerImgEl.style.display = "block";
+        } else {
+          bannerImgEl.style.display = "none";
+        }
+        if (hasBannerTxt) {
+          bannerTextEl.textContent = appData.banner.txt;
+          bannerTextEl.style.display = "block";
+        } else {
+          bannerTextEl.style.display = "none";
+        }
+      } else {
+        bannerEl.style.display = "none"; // If not set then nothing
+      }
+
+      // 3. Channels List
+      const channelsListEl = document.getElementById("channels-list");
+      channelsListEl.innerHTML = "";
+
+      if (!appData.channels || appData.channels.length === 0) {
+        channelsListEl.innerHTML = `
+          <div class="card" style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+            No channels available right now. Please check back later.
+          </div>
+        `;
+      } else {
+        appData.channels.forEach(ch => {
+          const isLocked = ch.rf && (appData.referral.count < appData.referral.target);
+          const card = document.createElement("div");
+          card.className = "channel-card" + (isLocked ? " locked" : "");
+
+          let tagHtml = "";
+          if (ch.rf) {
+            tagHtml += `<span class="tag tag-lock">🎁 Reward Channel</span>`;
+          } else if (ch.fs) {
+            tagHtml += `<span class="tag tag-forcesub">Backup Channel</span>`;
+          } else {
+            tagHtml += `<span class="tag tag-backup">Official</span>`;
+          }
+
+          const btnText = isLocked ? "🔒 Locked" : (ch.jr ? "Request Link" : "🚀 Get Link");
+          const btnClass = "btn-channel" + (isLocked ? " locked" : "");
+
+          card.innerHTML = `
+            <div class="channel-meta">
+              <div class="channel-title">${escapeHtml(ch.n)}</div>
+              <div class="channel-tags">${tagHtml}</div>
+            </div>
+            <button class="${btnClass}" onclick="handleChannelClick('${ch.id}', ${isLocked})">
+              <span>${btnText}</span>
+            </button>
+          `;
+          channelsListEl.appendChild(card);
+        });
+      }
+
+      // 4. Referral Section
+      const refSection = document.getElementById("referral-section");
+      if (appData.referral && appData.referral.enabled !== false) {
+        refSection.style.display = "block";
+        const count = appData.referral.count || 0;
+        const target = appData.referral.target || 3;
+        const rewardName = appData.referral.reward_channel || "Special Channel";
+        const pct = Math.min(100, Math.round((count / target) * 100));
+
+        // Dynamically set real referral channel name and description
+        document.getElementById("ref-channel-title").innerHTML = `🎁 ${escapeHtml(rewardName)}`;
+        document.getElementById("ref-desc").innerHTML = `Invite <b>${target}</b> friends using your personal link to unlock access to <b>${escapeHtml(rewardName)}</b>!`;
+
+        document.getElementById("ref-progress-bar").style.width = pct + "%";
+        document.getElementById("ref-progress-text").textContent = `Progress: ${count} / ${target} Referrals`;
+
+        const remaining = Math.max(0, target - count);
+        const remEl = document.getElementById("ref-remaining-text");
+        const badgeEl = document.getElementById("ref-badge");
+
+        if (count >= target) {
+          remEl.textContent = "🏆 Task Completed!";
+          remEl.style.color = "var(--success)";
+          badgeEl.textContent = "Unlocked ✅";
+          badgeEl.style.background = "rgba(16, 185, 129, 0.2)";
+          badgeEl.style.color = "var(--success)";
+        } else {
+          remEl.textContent = `${remaining} Remaining`;
+          remEl.style.color = "var(--text-muted)";
+          badgeEl.textContent = "In Progress";
+          badgeEl.style.background = "rgba(139, 92, 246, 0.2)";
+          badgeEl.style.color = "#c084fc";
+        }
+      } else {
+        refSection.style.display = "none";
+      }
+
+      // 5. Scam Alert Modal & Quick Button
+      const scamBtn = document.getElementById("scam-btn");
+      if (appData.scam_text) {
+        if (scamBtn) scamBtn.style.display = "flex";
+        document.getElementById("scam-modal-text").innerHTML = appData.scam_text.replace(/\n/g, "<br>");
+      } else {
+        if (scamBtn) scamBtn.style.display = "none";
+      }
+    }
+
+    // Channel Click Action
+    function handleChannelClick(channelId, isLocked) {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("medium");
+
+      if (isLocked) {
+        showToast("⚠️ Complete the referral task to unlock this channel!", "🔒");
+        const refSection = document.getElementById("referral-section");
+        refSection.scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+
+      showToast("Generating one-time invite link...", "⚡");
+      const linkParam = "link_" + channelId;
+      const targetUrl = "https://t.me/" + appData.bot_username + "?start=" + linkParam;
+
+      setTimeout(() => {
+        if (tg) {
+          tg.openTelegramLink(targetUrl);
+        } else {
+          window.location.href = targetUrl;
+        }
+      }, 300);
+    }
+
+    // Referral Copy & Direct Share
+    function getReferralLink() {
+      const uid = appData.user.id || "12345";
+      return "https://t.me/" + appData.bot_username + "?start=ref_" + uid;
+    }
+
+    function copyReferralLink() {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+      const link = getReferralLink();
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(() => {
+          showToast("Referral link copied to clipboard!", "📋");
+        }).catch(() => {
+          fallbackCopy(link);
+        });
+      } else {
+        fallbackCopy(link);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand("copy");
+        showToast("Referral link copied!", "📋");
+      } catch (e) {
+        prompt("Copy your referral link below:", text);
+      }
+      document.body.removeChild(ta);
+    }
+
+    function shareReferralLink() {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("medium");
+      const refLink = getReferralLink();
+      const shareText = "Join our official channels & unlock exclusive access:";
+      const shareUrl = "https://t.me/share/url?url=" + encodeURIComponent(refLink) + "&text=" + encodeURIComponent(shareText);
+
+      if (tg) {
+        tg.openTelegramLink(shareUrl);
+      } else {
+        window.open(shareUrl, "_blank");
+      }
+    }
+
+    function openSupport() {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+      const url = appData.support_url || "https://t.me/hawasxsupport";
+      if (tg) tg.openTelegramLink(url);
+      else window.open(url, "_blank");
+    }
+
+    function openScamAlertModal() {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+      document.getElementById("scam-modal").style.display = "flex";
+    }
+
+    function closeScamAlertModal(e) {
+      document.getElementById("scam-modal").style.display = "none";
+    }
+
+    function showToast(text, icon = "✅") {
+      const toast = document.getElementById("toast");
+      document.getElementById("toast-text").textContent = text;
+      document.getElementById("toast-icon").textContent = icon;
+      toast.classList.add("show");
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2600);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    // Run on load
+    window.addEventListener("DOMContentLoaded", loadAppData);
+  </script>
+</body>
+</html>
