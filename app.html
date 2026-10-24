@@ -552,6 +552,33 @@
     </div>
   </div>
 
+  <!-- Force Sub / Backup Channel Modal -->
+  <div class="modal-overlay" id="fsub-modal" onclick="closeFsubModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <h3 style="color: #f59e0b; display: flex; align-items: center; gap: 8px;">
+        <span>⚠️</span> Access Required
+      </h3>
+      <p id="fsub-modal-desc" style="color: #cbd5e1; font-size: 0.85rem; line-height: 1.45;">
+        You must send a join request to our backup channel first:
+      </p>
+      <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 12px 14px; margin: 4px 0;">
+        <span style="font-size: 0.72rem; color: #fbbf24; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Required Backup Channel</span>
+        <div id="fsub-channel-name" style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-top: 3px;">Main Backup</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+        <button id="fsub-join-btn" class="modal-close-btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-weight: 800; font-size: 0.9rem;" onclick="handleFsubJoin()">
+          👉 Request to Join Main Backup
+        </button>
+        <button class="modal-close-btn" style="background: rgba(255, 255, 255, 0.08); color: #cbd5e1; font-weight: 600;" onclick="handleFsubVerify()">
+          🔄 I Have Joined / Requested
+        </button>
+        <button class="modal-close-btn" style="background: transparent; color: var(--text-muted); padding: 6px; font-size: 0.8rem;" onclick="closeFsubModal()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast" id="toast">
     <span id="toast-icon">✅</span>
@@ -567,7 +594,8 @@
       referral: { count: 0, target: 3, reward_channel: "Special Channel", enabled: true },
       banner: { img: null, text: null },
       support_url: "https://t.me/hawasxsupport",
-      scam_text: null
+      scam_text: null,
+      fsub: null
     };
 
     // Initialize WebApp
@@ -625,6 +653,7 @@
           if (parsed.bn) appData.banner = parsed.bn;
           if (parsed.sup) appData.support_url = parsed.sup;
           if (parsed.scm) appData.scam_text = parsed.scm;
+          if (parsed.fs_req) appData.fsub = parsed.fs_req;
         }
       } catch (err) {
         console.warn("Could not decode payload:", err);
@@ -753,24 +782,97 @@
       }
     }
 
+    let currentFsubTargetChannelId = null;
+
     // Channel Click Action
     function handleChannelClick(channelId, isLocked) {
       if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("medium");
 
+      // 1. Referral Locked Check
       if (isLocked) {
         showToast("⚠️ Complete the referral task to unlock this channel!", "🔒");
         const refSection = document.getElementById("referral-section");
-        refSection.scrollIntoView({ behavior: "smooth" });
+        if (refSection) refSection.scrollIntoView({ behavior: "smooth" });
         return;
       }
 
-      showToast("Generating one-time invite link...", "⚡");
+      // 2. Find clicked channel object
+      const ch = appData.channels.find(c => String(c.id) === String(channelId));
+
+      // 3. Force Sub Pop-up Check:
+      // If user has not completed backup channel requirement AND clicked a non-backup channel:
+      if (appData.fsub && appData.fsub.required && (!ch || !ch.fs)) {
+        openFsubModal(channelId);
+        return;
+      }
+
+      // 4. Normal Delivery: trigger link generation and close WebApp so user lands in chat with link!
+      showToast("Delivering your one-time invite link in chat...", "⚡");
       const linkParam = "link_" + channelId;
       const targetUrl = "https://t.me/" + appData.bot_username + "?start=" + linkParam;
 
       setTimeout(() => {
         if (tg) {
           tg.openTelegramLink(targetUrl);
+          setTimeout(() => {
+            if (tg.close) tg.close();
+          }, 450);
+        } else {
+          window.location.href = targetUrl;
+        }
+      }, 300);
+    }
+
+    function openFsubModal(channelId) {
+      currentFsubTargetChannelId = channelId;
+      const fsub = appData.fsub;
+      if (!fsub) return;
+
+      const actionText = fsub.jr ? "send a join request to" : "join";
+      document.getElementById("fsub-modal-desc").innerHTML = 
+        `To access this channel, you must <b>${actionText}</b> our backup channel first:`;
+      document.getElementById("fsub-channel-name").textContent = fsub.name;
+
+      const joinBtn = document.getElementById("fsub-join-btn");
+      joinBtn.textContent = fsub.jr ? `👉 Request to Join ${fsub.name}` : `👉 Join ${fsub.name}`;
+
+      document.getElementById("fsub-modal").style.display = "flex";
+    }
+
+    function closeFsubModal(e) {
+      if (e && e.target && e.target !== e.currentTarget) return;
+      document.getElementById("fsub-modal").style.display = "none";
+    }
+
+    function handleFsubJoin() {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+      const fsub = appData.fsub;
+      if (!fsub || !fsub.url) {
+        const fallback = "https://t.me/" + appData.bot_username + "?start=link_" + (fsub?.id || "");
+        if (tg) tg.openTelegramLink(fallback);
+        else window.location.href = fallback;
+        return;
+      }
+      if (tg) {
+        tg.openTelegramLink(fsub.url);
+      } else {
+        window.open(fsub.url, "_blank");
+      }
+    }
+
+    function handleFsubVerify() {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("medium");
+      showToast("Verifying access in chat...", "🔄");
+      
+      const targetId = currentFsubTargetChannelId || (appData.fsub ? appData.fsub.id : "");
+      const targetUrl = "https://t.me/" + appData.bot_username + "?start=link_" + targetId;
+
+      setTimeout(() => {
+        if (tg) {
+          tg.openTelegramLink(targetUrl);
+          setTimeout(() => {
+            if (tg.close) tg.close();
+          }, 450);
         } else {
           window.location.href = targetUrl;
         }
