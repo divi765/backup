@@ -552,28 +552,26 @@
     </div>
   </div>
 
-  <!-- Force Sub / Backup Channel Modal -->
+  <!-- Force Sub / Backup Channels Modal -->
   <div class="modal-overlay" id="fsub-modal" onclick="closeFsubModal(event)">
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <h3 style="color: #f59e0b; display: flex; align-items: center; gap: 8px;">
         <span>⚠️</span> Access Required
       </h3>
       <p id="fsub-modal-desc" style="color: #cbd5e1; font-size: 0.85rem; line-height: 1.45;">
-        You must send a join request to our backup channel first:
+        You must request to join our backup channels before accessing this channel:
       </p>
-      <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 12px 14px; margin: 4px 0;">
-        <span style="font-size: 0.72rem; color: #fbbf24; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Required Backup Channel</span>
-        <div id="fsub-channel-name" style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-top: 3px;">Main Backup</div>
+      
+      <!-- Container for dynamic backup channels list -->
+      <div id="fsub-channels-container" style="display: flex; flex-direction: column; gap: 10px; margin: 8px 0; max-height: 260px; overflow-y: auto;">
       </div>
-      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
-        <button id="fsub-join-btn" class="modal-close-btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-weight: 800; font-size: 0.9rem;" onclick="handleFsubJoin()">
-          👉 Request to Join Main Backup
-        </button>
-        <button class="modal-close-btn" style="background: rgba(255, 255, 255, 0.08); color: #cbd5e1; font-weight: 600;" onclick="handleFsubVerify()">
-          🔄 I Have Joined / Requested
+
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+        <button id="fsub-verify-btn" class="modal-close-btn" style="background: rgba(255, 255, 255, 0.1); color: #fff; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.18);" onclick="handleFsubVerify()">
+          🔄 I Have Joined / Requested Both
         </button>
         <p style="font-size: 0.72rem; color: var(--text-muted); text-align: center; margin: 2px 0 0 0;">
-          Tap <b>Request to Join</b>, confirm in Telegram, then tap <b>I Have Joined</b> to unlock.
+          Tap each backup button above to confirm in Telegram, then tap <b>I Have Joined Both</b> to unlock.
         </p>
         <button class="modal-close-btn" style="background: transparent; color: var(--text-muted); padding: 6px; font-size: 0.8rem;" onclick="closeFsubModal()">
           Cancel
@@ -850,13 +848,38 @@
       const fsub = appData.fsub;
       if (!fsub) return;
 
-      const actionText = fsub.jr ? "send a join request to" : "join";
-      document.getElementById("fsub-modal-desc").innerHTML = 
-        `To access this channel, you must <b>${actionText}</b> our backup channel first:`;
-      document.getElementById("fsub-channel-name").textContent = fsub.name;
+      const channelsList = fsub.channels || (fsub.name ? [fsub] : []);
+      if (channelsList.length === 0) return;
 
-      const joinBtn = document.getElementById("fsub-join-btn");
-      joinBtn.textContent = fsub.jr ? `👉 Request to Join ${fsub.name}` : `👉 Join ${fsub.name}`;
+      const container = document.getElementById("fsub-channels-container");
+      container.innerHTML = "";
+
+      const plural = channelsList.length > 1;
+      document.getElementById("fsub-modal-desc").innerHTML = 
+        `To access this channel, you must request to join our <b>${plural ? "backup channels" : "backup channel"}</b> first:`;
+
+      channelsList.forEach((ch, idx) => {
+        const actionVerb = ch.jr ? "Request to Join" : "Join";
+        const channelBox = document.createElement("div");
+        channelBox.style.cssText = "background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.28); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;";
+        
+        channelBox.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.72rem; color: #fbbf24; text-transform: uppercase; font-weight: 700;">Required Backup #${idx + 1}</span>
+            <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">${ch.jr ? "Join Request" : "Direct Join"}</span>
+          </div>
+          <div style="font-size: 0.95rem; font-weight: 800; color: #fff;">${escapeHtml(ch.name)}</div>
+          <button class="modal-close-btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-weight: 800; font-size: 0.88rem; padding: 10px;" onclick="handleSingleFsubJoin('${escapeHtml(ch.url || "")}')">
+            👉 ${actionVerb} ${escapeHtml(ch.name)}
+          </button>
+        `;
+        container.appendChild(channelBox);
+      });
+
+      const verifyBtn = document.getElementById("fsub-verify-btn");
+      if (verifyBtn) {
+        verifyBtn.textContent = plural ? "🔄 I Have Joined / Requested Both" : "🔄 I Have Joined / Requested";
+      }
 
       document.getElementById("fsub-modal").style.display = "flex";
     }
@@ -867,26 +890,28 @@
       currentFsubTargetChannelId = null;
     }
 
-    function handleFsubJoin() {
+    function handleSingleFsubJoin(url) {
       if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
-      const fsub = appData.fsub;
-      if (!fsub || !fsub.url) {
-        showToast("Generating backup channel link...", "⏳");
-        const fallback = "https://t.me/" + appData.bot_username + "?start=link_" + (fsub?.id || "");
-        if (tg) tg.openTelegramLink(fallback);
-        else window.location.href = fallback;
+      if (!url) {
+        showToast("Backup link unavailable", "⚠️");
         return;
       }
-      showToast("Opening join request in Telegram...", "⚡");
+      showToast("Opening Telegram join sheet...", "⚡");
       if (tg) {
-        if (fsub.url.startsWith("https://t.me/") || fsub.url.startsWith("tg://")) {
-          tg.openTelegramLink(fsub.url);
+        if (url.startsWith("https://t.me/") || url.startsWith("tg://")) {
+          tg.openTelegramLink(url);
         } else {
-          tg.openLink(fsub.url);
+          tg.openLink(url);
         }
       } else {
-        window.open(fsub.url, "_blank");
+        window.open(url, "_blank");
       }
+    }
+
+    function handleFsubJoin() {
+      const fsub = appData.fsub;
+      const url = fsub?.url || (fsub?.channels && fsub.channels[0]?.url);
+      handleSingleFsubJoin(url);
     }
 
     function handleFsubVerify() {
