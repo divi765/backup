@@ -383,9 +383,28 @@
 
     function loadAdminData() {
       try {
-        const hash = window.location.hash;
-        if (hash.startsWith("#d=")) {
-          const rawB64 = hash.substring(3);
+        let rawB64 = null;
+
+        // 1. Check Query Parameters (?d=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has("d")) {
+          rawB64 = urlParams.get("d");
+        }
+
+        // 2. Check Hash Fragment (#d=... or Telegram's hash containing &d=...)
+        if (!rawB64 && window.location.hash) {
+          const hash = window.location.hash.substring(1);
+          if (hash.startsWith("d=")) {
+            rawB64 = hash.substring(2);
+          } else {
+            const hashParams = new URLSearchParams(hash);
+            if (hashParams.has("d")) {
+              rawB64 = hashParams.get("d");
+            }
+          }
+        }
+
+        if (rawB64) {
           let b64Str = rawB64.replace(/-/g, '+').replace(/_/g, '/');
           while (b64Str.length % 4 !== 0) b64Str += '=';
           const jsonStr = decodeURIComponent(escape(atob(b64Str)));

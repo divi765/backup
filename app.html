@@ -545,7 +545,7 @@
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <h3>⚠️ Scam Protection Alert</h3>
       <p id="scam-modal-text">
-        Official support is STRICTLY <b>@hawasxsupport</b>.<br><br>
+        Official support is STRICTLY <b>@hawasxsupport</b> & <b>@locateverse</b>.<br><br>
         Beware of impersonator scam accounts like <code>@hawasxsuuports</code>. We never ask for payments, OTPs, or login details!
       </p>
       <button class="modal-close-btn" onclick="closeScamAlertModal()">Understood</button>
@@ -583,12 +583,31 @@
       }
     }
 
-    // Parse Data from URL Hash: #d=<base64_json>
+    // Parse Data from URL Query String (?d=...) or Hash (#d=...)
     function loadAppData() {
       try {
-        const hash = window.location.hash;
-        if (hash.startsWith("#d=")) {
-          const rawB64 = hash.substring(3);
+        let rawB64 = null;
+
+        // 1. Check Query Parameters (?d=...) - preferred since Telegram never overwrites query params
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has("d")) {
+          rawB64 = urlParams.get("d");
+        }
+
+        // 2. Check Hash Fragment (#d=... or Telegram's hash containing &d=...)
+        if (!rawB64 && window.location.hash) {
+          const hash = window.location.hash.substring(1);
+          if (hash.startsWith("d=")) {
+            rawB64 = hash.substring(2);
+          } else {
+            const hashParams = new URLSearchParams(hash);
+            if (hashParams.has("d")) {
+              rawB64 = hashParams.get("d");
+            }
+          }
+        }
+
+        if (rawB64) {
           let b64Str = rawB64.replace(/-/g, '+').replace(/_/g, '/');
           while (b64Str.length % 4 !== 0) {
             b64Str += '=';
@@ -608,7 +627,7 @@
           if (parsed.scm) appData.scam_text = parsed.scm;
         }
       } catch (err) {
-        console.warn("Could not decode hash payload:", err);
+        console.warn("Could not decode payload:", err);
       }
       renderUI();
     }
