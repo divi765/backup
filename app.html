@@ -843,6 +843,8 @@
       }, 250);
     }
 
+    const clickedBackupIds = new Set();
+
     function openFsubModal(channelId) {
       currentFsubTargetChannelId = channelId;
       const fsub = appData.fsub;
@@ -863,14 +865,18 @@
         const channelBox = document.createElement("div");
         channelBox.style.cssText = "background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.28); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;";
         
+        const isClicked = clickedBackupIds.has(String(ch.id));
+        const btnBg = isClicked ? "linear-gradient(135deg, #10b981, #059669)" : "linear-gradient(135deg, #f59e0b, #d97706)";
+        const btnText = isClicked ? "✅ Requested / Joined" : `👉 ${actionVerb} ${escapeHtml(ch.name)}`;
+
         channelBox.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 0.72rem; color: #fbbf24; text-transform: uppercase; font-weight: 700;">Required Backup #${idx + 1}</span>
-            <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">${ch.jr ? "Join Request" : "Direct Join"}</span>
+            <span id="fsub-status-${ch.id}" style="font-size: 0.72rem; color: ${isClicked ? 'var(--success)' : '#94a3b8'}; font-weight: 600;">${isClicked ? 'Done ✅' : (ch.jr ? 'Join Request' : 'Direct Join')}</span>
           </div>
           <div style="font-size: 0.95rem; font-weight: 800; color: #fff;">${escapeHtml(ch.name)}</div>
-          <button class="modal-close-btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-weight: 800; font-size: 0.88rem; padding: 10px;" onclick="handleSingleFsubJoin('${escapeHtml(ch.url || "")}')">
-            👉 ${actionVerb} ${escapeHtml(ch.name)}
+          <button id="fsub-btn-${ch.id}" class="modal-close-btn" style="background: ${btnBg}; color: #fff; font-weight: 800; font-size: 0.88rem; padding: 10px;" onclick="handleSingleFsubJoin('${escapeHtml(ch.url || "")}', '${ch.id}')">
+            ${btnText}
           </button>
         `;
         container.appendChild(channelBox);
@@ -890,12 +896,27 @@
       currentFsubTargetChannelId = null;
     }
 
-    function handleSingleFsubJoin(url) {
+    function handleSingleFsubJoin(url, channelId) {
       if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
       if (!url) {
         showToast("Backup link unavailable", "⚠️");
         return;
       }
+
+      if (channelId) {
+        clickedBackupIds.add(String(channelId));
+        const btn = document.getElementById("fsub-btn-" + channelId);
+        if (btn) {
+          btn.style.background = "linear-gradient(135deg, #10b981, #059669)";
+          btn.innerHTML = "✅ Requested / Joined";
+        }
+        const statusEl = document.getElementById("fsub-status-" + channelId);
+        if (statusEl) {
+          statusEl.style.color = "var(--success)";
+          statusEl.textContent = "Done ✅";
+        }
+      }
+
       showToast("Opening Telegram join sheet...", "⚡");
       if (tg) {
         if (url.startsWith("https://t.me/") || url.startsWith("tg://")) {
@@ -911,7 +932,8 @@
     function handleFsubJoin() {
       const fsub = appData.fsub;
       const url = fsub?.url || (fsub?.channels && fsub.channels[0]?.url);
-      handleSingleFsubJoin(url);
+      const chId = fsub?.id || (fsub?.channels && fsub.channels[0]?.id);
+      handleSingleFsubJoin(url, chId);
     }
 
     function handleFsubVerify() {
@@ -923,6 +945,32 @@
         return;
       }
 
+      const targetCh = appData.channels.find(c => String(c.id) === String(currentFsubTargetChannelId));
+      const targetName = targetCh ? targetCh.n : "channel";
+
+      // If the target channel has its direct link pre-generated, open it DIRECTLY!
+      if (targetCh && targetCh.u) {
+        if (appData.fsub) appData.fsub.required = false;
+        closeFsubModal();
+
+        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+        showToast("Access Granted! Opening " + targetName + "...", "⚡");
+
+        setTimeout(() => {
+          if (tg) {
+            if (targetCh.u.startsWith("https://t.me/") || targetCh.u.startsWith("tg://")) {
+              tg.openTelegramLink(targetCh.u);
+            } else {
+              tg.openLink(targetCh.u);
+            }
+          } else {
+            window.location.href = targetCh.u;
+          }
+        }, 150);
+        return;
+      }
+
+      // Fallback only if direct link wasn't pre-generated
       showToast("Verifying access in chat...", "🔄");
       const targetUrl = "https://t.me/" + appData.bot_username + "?start=link_" + currentFsubTargetChannelId;
 

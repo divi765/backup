@@ -12,7 +12,7 @@
   <style>
     :root {
       --bg: #070a12;
-      --card-bg: rgba(18, 24, 40, 0.8);
+      --card-bg: rgba(18, 24, 40, 0.85);
       --card-border: rgba(255, 255, 255, 0.08);
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
@@ -41,7 +41,7 @@
       color: var(--text-main);
       min-height: 100vh;
       padding: 16px;
-      padding-bottom: 30px;
+      padding-bottom: 34px;
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -96,13 +96,18 @@
     }
 
     /* Section Headings */
+    .section-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
     .section-title {
       font-size: 0.85rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--text-muted);
-      margin-top: 4px;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -175,6 +180,26 @@
       box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
     }
 
+    /* Header action button (e.g. Add Channel) */
+    .btn-header-action {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+      box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+    }
+    .btn-header-action:active {
+      transform: scale(0.96);
+    }
+
     /* Channel Item */
     .channel-item {
       background: rgba(255, 255, 255, 0.03);
@@ -183,24 +208,72 @@
       padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      margin-bottom: 10px;
+      gap: 12px;
+      margin-bottom: 12px;
     }
     .ch-header {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
+      gap: 10px;
+    }
+    .ch-title-wrap {
+      flex: 1;
+      min-width: 0;
     }
     .ch-name {
       font-size: 0.95rem;
       font-weight: 700;
       color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .ch-id {
+    .ch-meta {
       font-size: 0.72rem;
       color: var(--text-muted);
+      margin-top: 2px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .ch-meta span {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 1px 6px;
+      border-radius: 4px;
       font-family: monospace;
     }
+    .ch-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-ch-action {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      padding: 5px 8px;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.2s;
+    }
+    .btn-ch-action:active {
+      transform: scale(0.94);
+    }
+    .btn-ch-del {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.28);
+      color: #fca5a5;
+    }
+    .btn-ch-del:active {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
     .ch-toggles {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -218,6 +291,10 @@
       justify-content: space-between;
       cursor: pointer;
       color: var(--text-muted);
+      transition: all 0.15s;
+    }
+    .toggle-pill:active {
+      transform: scale(0.97);
     }
     .toggle-pill.on {
       border-color: rgba(16, 185, 129, 0.4);
@@ -225,30 +302,77 @@
       color: var(--success);
     }
 
-    /* Action Buttons */
-    .action-row {
+    /* Referral Status Card */
+    .referral-status-card {
+      background: linear-gradient(145deg, rgba(26, 20, 48, 0.85), rgba(15, 23, 42, 0.85));
+      border: 1px solid rgba(139, 92, 246, 0.25);
+    }
+    .ref-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .ref-header-row h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ref-grid-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .ref-stat-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .ref-stat-box .val {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .ref-stat-box .lbl {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    /* Action Buttons Grid */
+    .action-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
     .btn-action {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.09);
       color: #fff;
-      padding: 12px 14px;
+      padding: 12px 10px;
       border-radius: 12px;
       font-weight: 700;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
+      gap: 8px;
       cursor: pointer;
       transition: all 0.2s;
     }
     .btn-action:active {
       transform: scale(0.97);
       background: rgba(255, 255, 255, 0.12);
+    }
+    .btn-action span {
+      font-size: 1.15rem;
     }
 
     /* Toast */
@@ -318,7 +442,7 @@
   </div>
   <div class="card">
     <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
-      Choose which interface users see when they send <code>/start</code>:
+      Choose which interface users see when sending <code>/start</code>:
     </p>
     <div class="mode-selector">
       <div class="mode-btn" id="mode-keyboard" onclick="setMode('keyboard')">
@@ -334,11 +458,47 @@
         Both Together
       </div>
     </div>
+    <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+      <button class="btn-ch-action" style="padding: 7px 12px; font-size: 0.75rem;" onclick="runAdminCmd('set_ui_mode')">
+        <span>🎨</span> Customize Web App Banner & URLs »
+      </button>
+    </div>
+  </div>
+
+  <!-- Referral System Overview Card -->
+  <div class="section-title">
+    <span>🎁</span> Referral System Overview
+  </div>
+  <div class="card referral-status-card">
+    <div class="ref-header-row">
+      <h3 id="ref-channel-label">🎁 VIP Reward Channel</h3>
+      <span class="btn-ch-action" id="ref-status-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3);">🟢 Active</span>
+    </div>
+    <div class="ref-grid-info">
+      <div class="ref-stat-box">
+        <div class="val" id="ref-target-val">3 Users</div>
+        <div class="lbl">Required Referrals</div>
+      </div>
+      <div class="ref-stat-box">
+        <div class="val" id="ref-reward-val" style="font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Special Channel</div>
+        <div class="lbl">Reward Channel</div>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: flex-end;">
+      <button class="btn-ch-action" style="padding: 7px 12px; font-size: 0.75rem;" onclick="runAdminCmd('set_referral')">
+        <span>⚙️</span> Manage Referral Target & Channel »
+      </button>
+    </div>
   </div>
 
   <!-- Managed Channels -->
-  <div class="section-title">
-    <span>📡</span> Channels & Access Control
+  <div class="section-header-row">
+    <div class="section-title">
+      <span>📡</span> Channels & Access Control
+    </div>
+    <button class="btn-header-action" onclick="addChannel()">
+      <span>➕</span> Add Channel
+    </button>
   </div>
   <div class="card" id="channels-card">
     <div id="channels-list">Loading channels...</div>
@@ -346,9 +506,9 @@
 
   <!-- Quick Configuration Actions -->
   <div class="section-title">
-    <span>⚙️</span> Bot Settings
+    <span>⚙️</span> Bot Settings (/settings)
   </div>
-  <div class="action-row">
+  <div class="action-grid">
     <div class="btn-action" onclick="runAdminCmd('set_referral')">
       <span>🎁</span> Referral Settings
     </div>
@@ -360,6 +520,24 @@
     </div>
     <div class="btn-action" onclick="runAdminCmd('set_reports')">
       <span>📋</span> Auto Reports
+    </div>
+    <div class="btn-action" onclick="runAdminCmd('set_approval_dm')">
+      <span>📨</span> Approval DM
+    </div>
+    <div class="btn-action" onclick="runAdminCmd('set_protect_content')">
+      <span>🔒</span> Protected Links
+    </div>
+    <div class="btn-action" onclick="runAdminCmd('set_admins')">
+      <span>👥</span> Manage Admins
+    </div>
+    <div class="btn-action" onclick="runAdminCmd('set_stats')">
+      <span>📊</span> Detailed Stats
+    </div>
+    <div class="btn-action" onclick="runAdminCmd('set_channels')">
+      <span>📡</span> Channels Menu
+    </div>
+    <div class="btn-action" onclick="runAdminCmd('settings_main')">
+      <span>⚙️</span> Full Chat Menu
     </div>
   </div>
 
@@ -373,12 +551,22 @@
       ui_mode: "keyboard",
       stats: { total: 0, active: 0, new_today: 0, new_week: 0 },
       channels: [],
-      referral: { target: 3, reward_channel: "Special Channel", enabled: true }
+      referral: { target: 3, reward_channel: "Special Channel", enabled: true },
+      cfg: { protect_content: true, approval_dm: true, scam_alert: false, reports: false }
     };
 
     if (tg) {
       tg.ready();
       tg.expand();
+      if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
+
+      const tgUser = tg.initDataUnsafe?.user;
+      if (tgUser) {
+        const nameEl = document.getElementById("admin-name");
+        const avatarEl = document.getElementById("admin-avatar");
+        if (nameEl && tgUser.first_name) nameEl.textContent = tgUser.first_name;
+        if (avatarEl && tgUser.first_name) avatarEl.textContent = tgUser.first_name.charAt(0).toUpperCase();
+      }
     }
 
     function loadAdminData() {
@@ -415,6 +603,7 @@
           if (parsed.st) adminData.stats = parsed.st;
           if (parsed.ch) adminData.channels = parsed.ch;
           if (parsed.r) adminData.referral = parsed.r;
+          if (parsed.cfg) adminData.cfg = parsed.cfg;
         }
       } catch (err) {
         console.warn("Could not decode admin payload:", err);
@@ -423,13 +612,13 @@
     }
 
     function renderAdminUI() {
-      // Stats
+      // 1. Stats
       document.getElementById("stat-total").textContent = (adminData.stats.total || 0).toLocaleString();
       document.getElementById("stat-active").textContent = (adminData.stats.active || 0).toLocaleString();
       document.getElementById("stat-new-today").textContent = "+" + (adminData.stats.new_today || 0).toLocaleString();
       document.getElementById("stat-new-week").textContent = "+" + (adminData.stats.new_week || 0).toLocaleString();
 
-      // UI Mode selector
+      // 2. UI Mode selector
       document.getElementById("mode-keyboard").classList.remove("active");
       document.getElementById("mode-webapp").classList.remove("active");
       document.getElementById("mode-both").classList.remove("active");
@@ -437,21 +626,59 @@
       const activeBtn = document.getElementById("mode-" + (adminData.ui_mode || "keyboard"));
       if (activeBtn) activeBtn.classList.add("active");
 
-      // Channels
+      // 3. Referral Overview
+      const ref = adminData.referral || {};
+      const targetValEl = document.getElementById("ref-target-val");
+      const rewardValEl = document.getElementById("ref-reward-val");
+      const statusBadgeEl = document.getElementById("ref-status-badge");
+
+      if (targetValEl) targetValEl.textContent = (ref.target || 3) + " Users";
+      if (rewardValEl) rewardValEl.textContent = ref.reward_channel || "None Set";
+      if (statusBadgeEl) {
+        if (ref.enabled !== false) {
+          statusBadgeEl.innerHTML = "🟢 Active";
+          statusBadgeEl.style.color = "#34d399";
+          statusBadgeEl.style.borderColor = "rgba(16, 185, 129, 0.3)";
+        } else {
+          statusBadgeEl.innerHTML = "🔴 Disabled";
+          statusBadgeEl.style.color = "#f87171";
+          statusBadgeEl.style.borderColor = "rgba(239, 68, 68, 0.3)";
+        }
+      }
+
+      // 4. Channels List
       const chListEl = document.getElementById("channels-list");
       chListEl.innerHTML = "";
 
       if (!adminData.channels || adminData.channels.length === 0) {
-        chListEl.innerHTML = "<p style='color: var(--text-muted); font-size: 0.8rem;'>No channels added yet.</p>";
+        chListEl.innerHTML = `
+          <div style="text-align: center; padding: 16px 0; color: var(--text-muted); font-size: 0.85rem;">
+            No channels configured yet.<br>
+            <button class="btn-header-action" style="margin: 10px auto 0;" onclick="addChannel()">
+              ➕ Add First Channel
+            </button>
+          </div>
+        `;
       } else {
         adminData.channels.forEach(c => {
           const item = document.createElement("div");
           item.className = "channel-item";
           item.innerHTML = `
             <div class="ch-header">
-              <div>
+              <div class="ch-title-wrap">
                 <div class="ch-name">${escapeHtml(c.name)}</div>
-                <div class="ch-id">${c.id}</div>
+                <div class="ch-meta">
+                  <span>ID: ${c.id}</span>
+                  <span>Btn: ${escapeHtml(c.btn || c.name)}</span>
+                </div>
+              </div>
+              <div class="ch-actions">
+                <button class="btn-ch-action" onclick="renameChannel('${c.id}')" title="Rename button">
+                  <span>✏️</span> Rename
+                </button>
+                <button class="btn-ch-action btn-ch-del" onclick="deleteChannel('${c.id}', '${escapeJs(c.name)}')" title="Delete channel">
+                  <span>🗑️</span>
+                </button>
               </div>
             </div>
             <div class="ch-toggles">
@@ -487,7 +714,7 @@
         const cmdUrl = "https://t.me/" + adminData.bot_username + "?start=cfg_mode_" + mode;
         if (tg) tg.openTelegramLink(cmdUrl);
         else window.location.href = cmdUrl;
-      }, 350);
+      }, 300);
     }
 
     function toggleChannelSetting(chId, settingType) {
@@ -497,7 +724,40 @@
       setTimeout(() => {
         if (tg) tg.openTelegramLink(cmdUrl);
         else window.location.href = cmdUrl;
-      }, 350);
+      }, 300);
+    }
+
+    function addChannel() {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("medium");
+      showToast("Opening bot to add channel...");
+      const cmdUrl = "https://t.me/" + adminData.bot_username + "?start=cfg_add_channel";
+      setTimeout(() => {
+        if (tg) tg.openTelegramLink(cmdUrl);
+        else window.location.href = cmdUrl;
+      }, 250);
+    }
+
+    function deleteChannel(chId, chName) {
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred("warning");
+      const confirmed = confirm("Are you sure you want to remove \"" + chName + "\" from the bot?");
+      if (!confirmed) return;
+
+      showToast("Removing channel...");
+      const cmdUrl = "https://t.me/" + adminData.bot_username + "?start=cfg_del_ch_" + chId;
+      setTimeout(() => {
+        if (tg) tg.openTelegramLink(cmdUrl);
+        else window.location.href = cmdUrl;
+      }, 250);
+    }
+
+    function renameChannel(chId) {
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+      showToast("Opening bot to rename button...");
+      const cmdUrl = "https://t.me/" + adminData.bot_username + "?start=cfg_rename_ch_" + chId;
+      setTimeout(() => {
+        if (tg) tg.openTelegramLink(cmdUrl);
+        else window.location.href = cmdUrl;
+      }, 250);
     }
 
     function runAdminCmd(action) {
@@ -515,7 +775,17 @@
     }
 
     function escapeHtml(str) {
-      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function escapeJs(str) {
+      return String(str || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"');
     }
 
     window.addEventListener("DOMContentLoaded", loadAdminData);
