@@ -572,6 +572,9 @@
         <button class="modal-close-btn" style="background: rgba(255, 255, 255, 0.08); color: #cbd5e1; font-weight: 600;" onclick="handleFsubVerify()">
           🔄 I Have Joined / Requested
         </button>
+        <p style="font-size: 0.72rem; color: var(--text-muted); text-align: center; margin: 2px 0 0 0;">
+          Tap <b>Request to Join</b>, confirm in Telegram, then tap <b>I Have Joined</b> to unlock.
+        </p>
         <button class="modal-close-btn" style="background: transparent; color: var(--text-muted); padding: 6px; font-size: 0.8rem;" onclick="closeFsubModal()">
           Cancel
         </button>
@@ -842,19 +845,26 @@
     function closeFsubModal(e) {
       if (e && e.target && e.target !== e.currentTarget) return;
       document.getElementById("fsub-modal").style.display = "none";
+      currentFsubTargetChannelId = null;
     }
 
     function handleFsubJoin() {
       if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
       const fsub = appData.fsub;
       if (!fsub || !fsub.url) {
+        showToast("Generating backup channel link...", "⏳");
         const fallback = "https://t.me/" + appData.bot_username + "?start=link_" + (fsub?.id || "");
         if (tg) tg.openTelegramLink(fallback);
         else window.location.href = fallback;
         return;
       }
+      showToast("Opening join request in Telegram...", "⚡");
       if (tg) {
-        tg.openTelegramLink(fsub.url);
+        if (fsub.url.startsWith("https://t.me/") || fsub.url.startsWith("tg://")) {
+          tg.openTelegramLink(fsub.url);
+        } else {
+          tg.openLink(fsub.url);
+        }
       } else {
         window.open(fsub.url, "_blank");
       }
@@ -862,10 +872,15 @@
 
     function handleFsubVerify() {
       if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("medium");
+
+      if (!currentFsubTargetChannelId) {
+        showToast("Please select a channel from the list first!", "⚠️");
+        closeFsubModal();
+        return;
+      }
+
       showToast("Verifying access in chat...", "🔄");
-      
-      const targetId = currentFsubTargetChannelId || (appData.fsub ? appData.fsub.id : "");
-      const targetUrl = "https://t.me/" + appData.bot_username + "?start=link_" + targetId;
+      const targetUrl = "https://t.me/" + appData.bot_username + "?start=link_" + currentFsubTargetChannelId;
 
       setTimeout(() => {
         if (tg) {
