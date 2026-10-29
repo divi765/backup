@@ -590,7 +590,8 @@
     const tg = window.Telegram?.WebApp;
     let appData = {
       user: { id: 12345678, name: "Member" },
-      bot_username: "HawasX_Backup_1bot",
+      bot_username: "HawasX_Backup_2bot",
+      worker_url: "https://webapp.himanshu-7ab.workers.dev/",
       channels: [],
       referral: { count: 0, target: 3, reward_channel: "Special Channel", enabled: true },
       banner: { img: null, text: null },
@@ -649,6 +650,7 @@
             appData.user.name = parsed.u.n || appData.user.name;
           }
           if (parsed.b) appData.bot_username = parsed.b;
+          if (parsed.w) appData.worker_url = parsed.w;
           if (parsed.ch) appData.channels = parsed.ch;
           if (parsed.r) appData.referral = parsed.r;
           if (parsed.bn) appData.banner = parsed.bn;
@@ -660,6 +662,24 @@
         console.warn("Could not decode payload:", err);
       }
       renderUI();
+
+      // If Cloudflare Worker URL is available, fetch 100% LIVE channels & settings (fixes stale old links)
+      if (appData.worker_url) {
+        fetch(appData.worker_url.replace(/\/+$/, "") + "/api/channels?user_id=" + appData.user.id)
+          .then(r => r.json())
+          .then(live => {
+            if (live && live.ok) {
+              if (live.channels && live.channels.length > 0) appData.channels = live.channels;
+              if (live.referral) appData.referral = live.referral;
+              if (live.banner) appData.banner = live.banner;
+              if (live.scam_text !== undefined) appData.scam_text = live.scam_text;
+              if (live.support_url) appData.support_url = live.support_url;
+              if (live.bot_username) appData.bot_username = live.bot_username;
+              renderUI();
+            }
+          })
+          .catch(err => console.warn("Live worker channels fetch skipped:", err));
+      }
     }
 
     function renderUI() {
@@ -807,7 +827,39 @@
         return;
       }
 
-      // 4. Direct Telegram Link Opening (Matching worker.js behavior):
+      // 4. On-Demand Single-Use Link via Cloudflare Worker (Offloads Heroku, direct pop-up):
+      if (appData.worker_url) {
+        showToast("Generating secure link...", "⚡");
+        const reqUrl = appData.worker_url.replace(/\/+$/, "") + "/api/get-link?channel_id=" + channelId + "&user_id=" + appData.user.id + "&join_req=" + Boolean(ch?.jr);
+        fetch(reqUrl)
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.ok && data.invite_link) {
+              if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+              showToast("Opening Telegram channel...", "⚡");
+              setTimeout(() => {
+                if (tg) {
+                  if (data.invite_link.startsWith("https://t.me/") || data.invite_link.startsWith("tg://")) {
+                    tg.openTelegramLink(data.invite_link);
+                  } else {
+                    tg.openLink(data.invite_link);
+                  }
+                } else {
+                  window.location.href = data.invite_link;
+                }
+              }, 120);
+            } else {
+              fallbackToBotChat(channelId);
+            }
+          })
+          .catch(err => {
+            console.warn("Worker link fetch failed, using fallback:", err);
+            fallbackToBotChat(channelId);
+          });
+        return;
+      }
+
+      // 5. Direct Telegram Link Opening (if pre-generated link exists):
       const link = ch ? ch.u : null;
       if (link) {
         if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
@@ -826,7 +878,11 @@
         return;
       }
 
-      // Fallback only if link was not pre-generated
+      // Fallback: Generate via bot chat
+      fallbackToBotChat(channelId);
+    }
+
+    function fallbackToBotChat(channelId) {
       showToast("Generating link in chat...", "⚡");
       const linkParam = "link_" + channelId;
       const targetUrl = "https://t.me/" + appData.bot_username + "?start=" + linkParam;
@@ -875,7 +931,7 @@
             <span id="fsub-status-${ch.id}" style="font-size: 0.72rem; color: ${isClicked ? 'var(--success)' : '#94a3b8'}; font-weight: 600;">${isClicked ? 'Done ✅' : (ch.jr ? 'Join Request' : 'Direct Join')}</span>
           </div>
           <div style="font-size: 0.95rem; font-weight: 800; color: #fff;">${escapeHtml(ch.name)}</div>
-          <button id="fsub-btn-${ch.id}" class="modal-close-btn" style="background: ${btnBg}; color: #fff; font-weight: 800; font-size: 0.88rem; padding: 10px;" onclick="handleSingleFsubJoin('${escapeHtml(ch.url || "")}', '${ch.id}')">
+          <button id="fsub-btn-${ch.id}" class="modal-close-btn" style="background: ${btnBg}; color: #fff; font-weight: 800; font-size: 0.88rem; padding: 10px;" onclick="handleSingleFsubJoin('${escapeHtml(ch.url || "")}', '${ch.id}', ${Boolean(ch.jr)})">
             ${btnText}
           </button>
         `;
@@ -896,12 +952,8 @@
       currentFsubTargetChannelId = null;
     }
 
-    function handleSingleFsubJoin(url, channelId) {
+    function handleSingleFsubJoin(url, channelId, isJoinReq = false) {
       if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
-      if (!url) {
-        showToast("Backup link unavailable", "⚠️");
-        return;
-      }
 
       if (channelId) {
         clickedBackupIds.add(String(channelId));
@@ -915,6 +967,36 @@
           statusEl.style.color = "var(--success)";
           statusEl.textContent = "Done ✅";
         }
+      }
+
+      // If URL is not pre-generated, fetch from Cloudflare Worker on-demand!
+      if (!url && appData.worker_url && channelId) {
+        showToast("Generating backup join link...", "⚡");
+        const reqUrl = appData.worker_url.replace(/\/+$/, "") + "/api/get-link?channel_id=" + channelId + "&user_id=" + appData.user.id + "&join_req=" + Boolean(isJoinReq);
+        fetch(reqUrl)
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.ok && data.invite_link) {
+              if (tg) {
+                if (data.invite_link.startsWith("https://t.me/") || data.invite_link.startsWith("tg://")) {
+                  tg.openTelegramLink(data.invite_link);
+                } else {
+                  tg.openLink(data.invite_link);
+                }
+              } else {
+                window.open(data.invite_link, "_blank");
+              }
+            } else {
+              showToast("Backup link unavailable", "⚠️");
+            }
+          })
+          .catch(() => showToast("Backup link error", "⚠️"));
+        return;
+      }
+
+      if (!url) {
+        showToast("Backup link unavailable", "⚠️");
+        return;
       }
 
       showToast("Opening Telegram join sheet...", "⚡");
@@ -945,45 +1027,12 @@
         return;
       }
 
-      const targetCh = appData.channels.find(c => String(c.id) === String(currentFsubTargetChannelId));
-      const targetName = targetCh ? targetCh.n : "channel";
+      const targetId = currentFsubTargetChannelId;
+      if (appData.fsub) appData.fsub.required = false;
+      closeFsubModal();
 
-      // If the target channel has its direct link pre-generated, open it DIRECTLY!
-      if (targetCh && targetCh.u) {
-        if (appData.fsub) appData.fsub.required = false;
-        closeFsubModal();
-
-        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
-        showToast("Access Granted! Opening " + targetName + "...", "⚡");
-
-        setTimeout(() => {
-          if (tg) {
-            if (targetCh.u.startsWith("https://t.me/") || targetCh.u.startsWith("tg://")) {
-              tg.openTelegramLink(targetCh.u);
-            } else {
-              tg.openLink(targetCh.u);
-            }
-          } else {
-            window.location.href = targetCh.u;
-          }
-        }, 150);
-        return;
-      }
-
-      // Fallback only if direct link wasn't pre-generated
-      showToast("Verifying access in chat...", "🔄");
-      const targetUrl = "https://t.me/" + appData.bot_username + "?start=link_" + currentFsubTargetChannelId;
-
-      setTimeout(() => {
-        if (tg) {
-          tg.openTelegramLink(targetUrl);
-          setTimeout(() => {
-            if (tg.close) tg.close();
-          }, 450);
-        } else {
-          window.location.href = targetUrl;
-        }
-      }, 300);
+      // Directly trigger channel access for the target channel!
+      handleChannelClick(targetId, false);
     }
 
     // Referral Copy & Direct Share
