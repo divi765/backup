@@ -545,8 +545,8 @@
     <div class="modal-sheet" onclick="event.stopPropagation()">
       <h3>⚠️ Scam Protection Alert</h3>
       <p id="scam-modal-text">
-        Official support is STRICTLY <b>@hawasxsupport</b> & <b>@locateverse</b>.<br><br>
-        Beware of impersonator scam accounts like <code>@hawasxsuuports</code>. We never ask for payments, OTPs, or login details!
+        official support is strictly <b>@hawasXSupport</b> . beware of sc@mmers / Fake accounts like <code>@hawasxsupports</code>.<br><br>
+        a random person will msg you that your girl is viral in admin irl grp etc and ask for money , simply block them and report their id to admins or <b>@hawasxsupport</b>
       </p>
       <button class="modal-close-btn" onclick="closeScamAlertModal()">Understood</button>
     </div>
@@ -595,8 +595,7 @@
       channels: [],
       referral: { count: 0, target: 3, reward_channel: "Special Channel", enabled: true },
       banner: { img: null, text: null },
-      support_url: "https://t.me/hawasxsupport",
-      scam_text: null,
+      scam_text: "official support is strictly @hawasXSupport . beware of sc@mmers / Fake accounts like @hawasxsupports.\n\na random person will msg you that your girl is viral in admin irl grp etc and ask for money , simply block them and report their id to admins or @hawasxsupport",
       fsub: null
     };
 
@@ -669,8 +668,18 @@
           .then(r => r.json())
           .then(live => {
             if (live && live.ok) {
-              if (live.channels && live.channels.length > 0) appData.channels = live.channels;
-              if (live.referral) appData.referral = live.referral;
+              if (live.channels && live.channels.length > 0) {
+                appData.channels = live.channels.map(c => ({
+                  ...c,
+                  n: c.btn || c.name || c.n || "Channel",
+                  name: c.name || c.btn || c.n || "Channel",
+                  rf: Boolean(c.rf)
+                }));
+              }
+              if (live.referral) {
+                const currentCount = Number(appData.referral?.count || 0);
+                appData.referral = { ...live.referral, count: currentCount };
+              }
               if (live.banner) appData.banner = live.banner;
               if (live.scam_text !== undefined) appData.scam_text = live.scam_text;
               if (live.support_url) appData.support_url = live.support_url;
@@ -694,19 +703,21 @@
       const bannerImgEl = document.getElementById("banner-img");
       const bannerTextEl = document.getElementById("banner-text");
 
-      const hasBannerImg = appData.banner?.img && appData.banner.img.trim().length > 0;
-      const hasBannerTxt = appData.banner?.txt && appData.banner.txt.trim().length > 0;
+      const bannerTxtVal = (appData.banner?.txt || appData.banner?.text || "").trim();
+      const bannerImgVal = (appData.banner?.img || "").trim();
+      const hasBannerImg = bannerImgVal.length > 0;
+      const hasBannerTxt = bannerTxtVal.length > 0;
 
       if (hasBannerImg || hasBannerTxt) {
         bannerEl.style.display = "flex";
         if (hasBannerImg) {
-          bannerImgEl.src = appData.banner.img;
+          bannerImgEl.src = bannerImgVal;
           bannerImgEl.style.display = "block";
         } else {
           bannerImgEl.style.display = "none";
         }
         if (hasBannerTxt) {
-          bannerTextEl.textContent = appData.banner.txt;
+          bannerTextEl.textContent = bannerTxtVal;
           bannerTextEl.style.display = "block";
         } else {
           bannerTextEl.style.display = "none";
@@ -726,8 +737,12 @@
           </div>
         `;
       } else {
+        const userRefCount = Number(appData.referral?.count || 0);
+        const targetRefCount = Number(appData.referral?.target || 3);
+
         appData.channels.forEach(ch => {
-          const isLocked = ch.rf && (appData.referral.count < appData.referral.target);
+          const isRefRequired = Boolean(ch.rf);
+          const isLocked = isRefRequired && (userRefCount < targetRefCount);
           const card = document.createElement("div");
           card.className = "channel-card" + (isLocked ? " locked" : "");
 
@@ -742,10 +757,11 @@
 
           const btnText = isLocked ? "🔒 Locked" : (ch.jr ? "Request Link" : "🚀 Get Link");
           const btnClass = "btn-channel" + (isLocked ? " locked" : "");
+          const channelTitle = ch.btn || ch.name || ch.n || "Channel";
 
           card.innerHTML = `
             <div class="channel-meta">
-              <div class="channel-title">${escapeHtml(ch.n)}</div>
+              <div class="channel-title">${escapeHtml(channelTitle)}</div>
               <div class="channel-tags">${tagHtml}</div>
             </div>
             <button class="${btnClass}" onclick="handleChannelClick('${ch.id}', ${isLocked})">
@@ -795,11 +811,9 @@
 
       // 5. Scam Alert Modal & Quick Button
       const scamBtn = document.getElementById("scam-btn");
+      if (scamBtn) scamBtn.style.display = "flex";
       if (appData.scam_text) {
-        if (scamBtn) scamBtn.style.display = "flex";
         document.getElementById("scam-modal-text").innerHTML = appData.scam_text.replace(/\n/g, "<br>");
-      } else {
-        if (scamBtn) scamBtn.style.display = "none";
       }
     }
 
@@ -809,28 +823,30 @@
     function handleChannelClick(channelId, isLocked) {
       if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("medium");
 
+      const ch = appData.channels.find(c => String(c.id) === String(channelId));
+      const userRefCount = Number(appData.referral?.count || 0);
+      const targetRefCount = Number(appData.referral?.target || 3);
+      const isRefRequired = Boolean(ch?.rf);
+
       // 1. Referral Locked Check
-      if (isLocked) {
+      if (isLocked || (isRefRequired && userRefCount < targetRefCount)) {
         showToast("⚠️ Complete the referral task to unlock this channel!", "🔒");
         const refSection = document.getElementById("referral-section");
         if (refSection) refSection.scrollIntoView({ behavior: "smooth" });
         return;
       }
 
-      // 2. Find clicked channel object
-      const ch = appData.channels.find(c => String(c.id) === String(channelId));
-
-      // 3. Force Sub Pop-up Check:
+      // 2. Force Sub Pop-up Check:
       // If user has not completed backup channel requirement AND clicked a non-backup channel:
       if (appData.fsub && appData.fsub.required && (!ch || !ch.fs)) {
         openFsubModal(channelId);
         return;
       }
 
-      // 4. On-Demand Single-Use Link via Cloudflare Worker (Offloads Heroku, direct pop-up):
+      // 3. On-Demand Single-Use Link via Cloudflare Worker (Offloads Heroku, direct pop-up):
       if (appData.worker_url) {
         showToast("Generating secure link...", "⚡");
-        const reqUrl = appData.worker_url.replace(/\/+$/, "") + "/api/get-link?channel_id=" + channelId + "&user_id=" + appData.user.id + "&join_req=" + Boolean(ch?.jr);
+        const reqUrl = appData.worker_url.replace(/\/+$/, "") + "/api/get-link?channel_id=" + channelId + "&user_id=" + appData.user.id + "&join_req=" + Boolean(ch?.jr) + "&ref_count=" + userRefCount;
         fetch(reqUrl)
           .then(r => r.json())
           .then(data => {
@@ -848,6 +864,8 @@
                   window.location.href = data.invite_link;
                 }
               }, 120);
+            } else if (data && !data.ok && data.error) {
+              showToast(data.error, "⚠️");
             } else {
               fallbackToBotChat(channelId);
             }
